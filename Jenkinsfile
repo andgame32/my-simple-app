@@ -51,7 +51,7 @@ pipeline {
                     // Запускаем новый
                     sh """
                     docker run -d \
-                    -p 80:80 \
+                    -p 8081:80 \
                     --name running-app \
                     ${DOCKER_IMAGE}:${BUILD_NUMBER}
                     """
