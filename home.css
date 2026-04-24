@@ -1,0 +1,71 @@
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: white;
+  color: black;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: 250px 1fr;
+  grid-template-rows: 60px 1fr;
+  height: 100vh;
+}
+
+.logo {
+  position: absolute;
+  top: 10px;
+  left: 15px;
+  font-weight: bold;
+  z-index: 10;
+}
+
+.topbar {
+  grid-column: 1 / span 2;
+  border-bottom: 2px solid black;
+  display: flex;
+  align-items: center;
+  padding-left: 150px;
+}
+
+.topbar nav a {
+  margin-right: 20px;
+  text-decoration: none;
+  color: black;
+}
+
+.sidebar {
+  border-right: 2px solid black;
+  padding: 15px;
+  display: flex;
+  flex-direction: column;
+}
+
+.btn {
+  margin-bottom: 10px;
+  padding: 8px;
+  border: 1px solid black;
+  background: white;
+  cursor: pointer;
+}
+
+.input {
+  margin-bottom: 10px;
+  padding: 8px;
+  border: 1px solid black;
+}
+
+.projects {
+  margin-top: 10px;
+  overflow-y: auto;
+}
+
+.project {
+  border: 1px solid black;
+  padding: 8px;
+  margin-bottom: 8px;
+}
+
+.content {
+  padding: 20px;
+}
