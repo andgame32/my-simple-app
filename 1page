@@ -1,0 +1,120 @@
+import { useState } from "react";
+import api from "./api";
+
+function App() {
+    const [token, setToken] = useState(localStorage.getItem("token"));
+    const [mode, setMode] = useState("login"); // login | register
+
+    const [form, setForm] = useState({
+        email: "",
+        password: "",
+        name: ""
+    });
+
+    const handleChange = (e) => {
+        setForm({
+            ...form,
+            [e.target.name]: e.target.value
+        });
+    };
+
+    // 🔥 LOGIN
+    const login = async () => {
+        try {
+            const res = await api.post("/v1/auth/login", {
+                email: form.email,
+                password: form.password
+            });
+
+            const t = res.data.token || res.data.access_token;
+
+            localStorage.setItem("token", t);
+            setToken(t);
+
+        } catch (err) {
+            console.log("login error", err);
+        }
+    };
+
+    // 🔥 REGISTER
+    const register = async () => {
+        try {
+            await api.post("/v1/auth/register", {
+                name: form.name,
+                email: form.email,
+                password: form.password
+            });
+
+            // 👉 сразу логинимся после регистрации
+            await login();
+
+        } catch (err) {
+            console.log("register error", err);
+        }
+    };
+
+    const logout = () => {
+        localStorage.removeItem("token");
+        setToken(null);
+    };
+
+    // =========================
+    // 🔥 HOME SCREEN
+    // =========================
+    if (token) {
+        return (
+            <div>
+                <h1>HOME</h1>
+                <p>Ты авторизован</p>
+
+                <button onClick={logout}>
+                    Выйти
+                </button>
+            </div>
+        );
+    }
+
+    // =========================
+    // 🔥 AUTH SCREEN
+    // =========================
+    return (
+        <div>
+            <h1>{mode === "login" ? "LOGIN" : "REGISTER"}</h1>
+
+            {mode === "register" && (
+                <input
+                    name="name"
+                    placeholder="name"
+                    onChange={handleChange}
+                />
+            )}
+
+            <input
+                name="email"
+                placeholder="email"
+                onChange={handleChange}
+            />
+
+            <input
+                name="password"
+                type="password"
+                placeholder="password"
+                onChange={handleChange}
+            />
+
+            {mode === "login" ? (
+                <button onClick={login}>Войти</button>
+            ) : (
+                <button onClick={register}>Регистрация</button>
+            )}
+
+            <hr />
+
+            <button onClick={() => setMode(mode === "login" ? "register" : "login")}>
+                Переключить
+            </button>
+        </div>
+    );
+}
+
+export default App;
