@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Link, Outlet } from "react-router-dom";
-import axios from "axios";
+import api from "../api"; // 🔥 ВАЖНО
 import "./Home.css";
 
 function Home() {
@@ -9,27 +9,31 @@ function Home() {
   const [ascending, setAscending] = useState(true);
 
   useEffect(() => {
-  axios
-    .get("/api/project")
-    .then((res) => {
-      console.log(res.data); 
-      setProjects(res.data);
-    })
-    .catch((err) => {
-      console.error(err);
-      setProjects([]); 
-    });
-}, []);
+    const fetchProjects = async () => {
+      try {
+        const res = await api.get("/project"); // 🔥 через api.js
 
-const filteredProjects = (Array.isArray(projects) ? projects : [])
-  .filter((p) =>
-    (p?.name || "").toLowerCase().includes(search.toLowerCase())
-  )
-  .sort((a, b) =>
-    ascending
-      ? (a?.name || "").localeCompare(b?.name || "")
-      : (b?.name || "").localeCompare(a?.name || "")
-  );
+        console.log("PROJECTS:", res.data);
+
+        setProjects(res.data);
+      } catch (err) {
+        console.error("API ERROR:", err);
+        setProjects([]);
+      }
+    };
+
+    fetchProjects();
+  }, []);
+
+  const filteredProjects = (Array.isArray(projects) ? projects : [])
+    .filter((p) =>
+      (p?.name || "").toLowerCase().includes(search.toLowerCase())
+    )
+    .sort((a, b) =>
+      ascending
+        ? (a?.name || "").localeCompare(b?.name || "")
+        : (b?.name || "").localeCompare(a?.name || "")
+    );
 
   return (
     <div className="layout">
