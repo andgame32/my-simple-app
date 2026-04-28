@@ -3,22 +3,24 @@ import api from "../api";
 
 function Home({ onLogout }) {
   const [projects, setProjects] = useState([]);
-  const [selectedProject, setSelectedProject] = useState(null);
 
+  const [selectedProject, setSelectedProject] = useState(null);
   const [milestones, setMilestones] = useState([]);
+
   const [milestoneForm, setMilestoneForm] = useState({
     title: "",
     description: "",
     status: ""
   });
+
   const [editingMilestoneId, setEditingMilestoneId] = useState(null);
+  const [showMilestoneForm, setShowMilestoneForm] = useState(false);
 
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [direction, setDirection] = useState("asc");
 
   const [showForm, setShowForm] = useState(false);
-  const [showMilestoneForm, setShowMilestoneForm] = useState(false);
 
   const [editingId, setEditingId] = useState(null);
   const [editData, setEditData] = useState({});
@@ -86,28 +88,23 @@ function Home({ onLogout }) {
   const saveEdit = async () => {
     await api.put(`/v1/projects/${editingId}`, editData);
     setEditingId(null);
+    setEditData({});
     fetchProjects();
   };
 
   // ================= MILESTONES =================
 
-  const fetchMilestones = async (projectCode) => {
-    try {
-      const res = await api.get(`/v1/projects/${projectCode}/milestones`);
-      setMilestones(res.data.data || res.data);
-    } catch (err) {
-      console.log("MILESTONE ERROR:", err);
-    }
+  const fetchMilestones = async (code) => {
+    const res = await api.get(`/v1/projects/${code}/milestones`);
+    setMilestones(res.data.data || res.data);
   };
 
   const selectProject = (project) => {
     setSelectedProject(project);
-    fetchMilestones(project.code); // 🔥 используем code
+    fetchMilestones(project.code); // 🔥 ключевой момент
   };
 
   const createMilestone = async () => {
-    if (!selectedProject) return;
-
     await api.post(
       `/v1/projects/${selectedProject.code}/milestones`,
       milestoneForm
@@ -150,10 +147,12 @@ function Home({ onLogout }) {
         <nav>
           <span>Карточки</span>
           <span>Аналитика</span>
+          <span>Страница 1</span>
+          <span>Страница 2</span>
+          <span>Страница 3</span>
         </nav>
       </header>
 
-      {/* SIDEBAR */}
       <aside className="sidebar">
 
         <button className="btn" onClick={() => setShowForm(!showForm)}>
@@ -182,53 +181,48 @@ function Home({ onLogout }) {
           <div className="form">
             <input placeholder="Название"
               value={newProject.name}
-              onChange={(e) =>
-                setNewProject({ ...newProject, name: e.target.value })
-              }
-            />
+              onChange={(e) => setNewProject({ ...newProject, name: e.target.value })} />
+
             <input placeholder="Код"
               value={newProject.code}
-              onChange={(e) =>
-                setNewProject({ ...newProject, code: e.target.value })
-              }
-            />
+              onChange={(e) => setNewProject({ ...newProject, code: e.target.value })} />
+
             <button className="btn" onClick={handleCreate}>
               Создать
             </button>
           </div>
         )}
 
-        {/* СПИСОК ПРОЕКТОВ */}
         <div className="projects">
+
           {projects.map((p) => (
-            <div
-              key={p.id}
-              className={`project ${selectedProject?.id === p.id ? "active" : ""}`}
-              onClick={() => selectProject(p)}
-            >
+            <div key={p.id} className="project">
+
               <div className="project-title">{p.name}</div>
+
               <div className="project-actions">
-                <button onClick={(e) => { e.stopPropagation(); startEdit(p); }}>
-                  edit
+                <button onClick={() => selectProject(p)}>
+                  выбрать
                 </button>
-                <button onClick={(e) => { e.stopPropagation(); handleDelete(p.id); }}>
-                  delete
-                </button>
+                <button onClick={() => startEdit(p)}>edit</button>
+                <button onClick={() => handleDelete(p.id)}>delete</button>
               </div>
+
             </div>
           ))}
+
         </div>
 
       </aside>
 
-      {/* MAIN CONTENT */}
+      {/* ================= MILESTONES ================= */}
       <main className="content">
 
         {!selectedProject ? (
-          <h2>Выберите проект</h2>
+          <h1>Выберите проект</h1>
         ) : (
           <>
-            <h2>{selectedProject.name} — Milestones</h2>
+            <h1>{selectedProject.name}</h1>
 
             <button
               className="btn"
@@ -263,9 +257,7 @@ function Home({ onLogout }) {
                   }
                 />
 
-                <button className="btn" onClick={createMilestone}>
-                  Создать
-                </button>
+                <button onClick={createMilestone}>Создать</button>
               </div>
             )}
 
@@ -296,7 +288,7 @@ function Home({ onLogout }) {
                         }
                       />
 
-                      <button onClick={saveMilestone}>save</button>
+                      <button onClick={saveMilestone}>Сохранить</button>
                     </div>
                   ) : (
                     <>
