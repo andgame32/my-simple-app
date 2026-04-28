@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import api from "../api";
-import "./Home.css";
 
 function Home({ onLogout }) {
   const [projects, setProjects] = useState([]);
@@ -10,6 +9,9 @@ function Home({ onLogout }) {
   const [direction, setDirection] = useState("asc");
 
   const [showForm, setShowForm] = useState(false);
+
+  const [editingId, setEditingId] = useState(null);
+  const [editData, setEditData] = useState({});
 
   const [newProject, setNewProject] = useState({
     name: "",
@@ -110,7 +112,7 @@ function Home({ onLogout }) {
       <aside className="sidebar">
 
         <button className="btn" onClick={() => setShowForm(!showForm)}>
-          + Добавить проект
+          Добавить проект
         </button>
 
         <button
