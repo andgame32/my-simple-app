@@ -1,201 +1,330 @@
 import { useEffect, useState } from "react";
 import api from "../api";
 
-function Milestones({ projectId }) {
+function Home({ onLogout }) {
+  const [projects, setProjects] = useState([]);
+  const [selectedProject, setSelectedProject] = useState(null);
+
   const [milestones, setMilestones] = useState([]);
-
-  const [showForm, setShowForm] = useState(false);
-
-  const [newMilestone, setNewMilestone] = useState({
+  const [milestoneForm, setMilestoneForm] = useState({
     title: "",
     description: "",
     status: ""
   });
+  const [editingMilestoneId, setEditingMilestoneId] = useState(null);
+
+  const [page, setPage] = useState(1);
+  const [search, setSearch] = useState("");
+  const [direction, setDirection] = useState("asc");
+
+  const [showForm, setShowForm] = useState(false);
+  const [showMilestoneForm, setShowMilestoneForm] = useState(false);
 
   const [editingId, setEditingId] = useState(null);
   const [editData, setEditData] = useState({});
 
-  // ================= GET =================
-  const fetchMilestones = async () => {
-    if (!projectId) return;
+  const [newProject, setNewProject] = useState({
+    name: "",
+    code: "",
+    status: "",
+    description: "",
+    started_at: "",
+    ended_at: ""
+  });
 
+  // ================= PROJECTS =================
+
+  const fetchProjects = async () => {
     try {
-      const res = await api.get(`/v1/projects/${projectId}/milestones`);
-      setMilestones(res.data.data || res.data);
+      const res = await api.get("/v1/projects", {
+        params: {
+          page,
+          per_page: 5,
+          q: search,
+          sort: "name",
+          direction
+        }
+      });
+
+      setProjects(res.data.data || res.data);
     } catch (err) {
-      console.log("GET ERROR:", err);
+      console.log("API ERROR:", err);
+      if (err.response?.status === 401) onLogout?.();
     }
   };
 
   useEffect(() => {
-    fetchMilestones();
-  }, [projectId]);
+    fetchProjects();
+  }, [page, search, direction]);
 
-  // ================= CREATE =================
   const handleCreate = async () => {
-    try {
-      await api.post(
-        `/v1/projects/${projectId}/milestones`,
-        newMilestone
-      );
+    await api.post("/v1/projects", newProject);
 
-      setShowForm(false);
-      setNewMilestone({
-        title: "",
-        description: "",
-        status: ""
-      });
+    setShowForm(false);
+    setNewProject({
+      name: "",
+      code: "",
+      status: "",
+      description: "",
+      started_at: "",
+      ended_at: ""
+    });
 
-      fetchMilestones();
-    } catch (err) {
-      console.log("CREATE ERROR:", err);
-    }
+    fetchProjects();
   };
 
-  // ================= DELETE =================
   const handleDelete = async (id) => {
-    try {
-      await api.delete(`/v1/projects/milestones/${id}`);
-      fetchMilestones();
-    } catch (err) {
-      console.log("DELETE ERROR:", err);
-    }
+    await api.delete(`/v1/projects/${id}`);
+    fetchProjects();
   };
 
-  // ================= EDIT =================
-  const startEdit = async (id) => {
-    try {
-      const res = await api.get(`/v1/projects/milestones/${id}`);
-
-      setEditingId(id);
-      setEditData(res.data);
-    } catch (err) {
-      console.log("GET ONE ERROR:", err);
-    }
+  const startEdit = (project) => {
+    setEditingId(project.id);
+    setEditData({ ...project });
   };
 
   const saveEdit = async () => {
-    try {
-      await api.put(
-        `/v1/projects/milestones/${editingId}`,
-        editData
-      );
+    await api.put(`/v1/projects/${editingId}`, editData);
+    setEditingId(null);
+    fetchProjects();
+  };
 
-      setEditingId(null);
-      setEditData({});
-      fetchMilestones();
+  // ================= MILESTONES =================
+
+  const fetchMilestones = async (projectCode) => {
+    try {
+      const res = await api.get(`/v1/projects/${projectCode}/milestones`);
+      setMilestones(res.data.data || res.data);
     } catch (err) {
-      console.log("UPDATE ERROR:", err);
+      console.log("MILESTONE ERROR:", err);
     }
+  };
+
+  const selectProject = (project) => {
+    setSelectedProject(project);
+    fetchMilestones(project.code); // 🔥 используем code
+  };
+
+  const createMilestone = async () => {
+    if (!selectedProject) return;
+
+    await api.post(
+      `/v1/projects/${selectedProject.code}/milestones`,
+      milestoneForm
+    );
+
+    setMilestoneForm({ title: "", description: "", status: "" });
+    setShowMilestoneForm(false);
+    fetchMilestones(selectedProject.code);
+  };
+
+  const deleteMilestone = async (id) => {
+    await api.delete(`/v1/projects/milestones/${id}`);
+    fetchMilestones(selectedProject.code);
+  };
+
+  const startEditMilestone = (m) => {
+    setEditingMilestoneId(m.id);
+    setMilestoneForm(m);
+  };
+
+  const saveMilestone = async () => {
+    await api.put(
+      `/v1/projects/milestones/${editingMilestoneId}`,
+      milestoneForm
+    );
+
+    setEditingMilestoneId(null);
+    setMilestoneForm({ title: "", description: "", status: "" });
+    fetchMilestones(selectedProject.code);
   };
 
   // ================= UI =================
 
   return (
-    <div className="content">
+    <div className="layout">
 
-      <h1>Milestones</h1>
+      <div className="logo">Proj</div>
 
-      <button className="btn" onClick={() => setShowForm(!showForm)}>
-        Добавить этап
-      </button>
+      <header className="topbar">
+        <nav>
+          <span>Карточки</span>
+          <span>Аналитика</span>
+        </nav>
+      </header>
 
-      {showForm && (
-        <div className="form">
-          <input
-            placeholder="Название"
-            value={newMilestone.title}
-            onChange={(e) =>
-              setNewMilestone({ ...newMilestone, title: e.target.value })
-            }
-          />
+      {/* SIDEBAR */}
+      <aside className="sidebar">
 
-          <input
-            placeholder="Описание"
-            value={newMilestone.description}
-            onChange={(e) =>
-              setNewMilestone({ ...newMilestone, description: e.target.value })
-            }
-          />
+        <button className="btn" onClick={() => setShowForm(!showForm)}>
+          Добавить проект
+        </button>
 
-          <input
-            placeholder="Статус"
-            value={newMilestone.status}
-            onChange={(e) =>
-              setNewMilestone({ ...newMilestone, status: e.target.value })
-            }
-          />
+        <button
+          className="btn"
+          onClick={() => setDirection(direction === "asc" ? "desc" : "asc")}
+        >
+          Сортировка: {direction}
+        </button>
 
-          <button className="btn" onClick={handleCreate}>
-            Создать
-          </button>
-        </div>
-      )}
+        <input
+          type="text"
+          placeholder="Поиск..."
+          value={search}
+          onChange={(e) => {
+            setSearch(e.target.value);
+            setPage(1);
+          }}
+          className="input"
+        />
 
-      <div className="projects">
+        {showForm && (
+          <div className="form">
+            <input placeholder="Название"
+              value={newProject.name}
+              onChange={(e) =>
+                setNewProject({ ...newProject, name: e.target.value })
+              }
+            />
+            <input placeholder="Код"
+              value={newProject.code}
+              onChange={(e) =>
+                setNewProject({ ...newProject, code: e.target.value })
+              }
+            />
+            <button className="btn" onClick={handleCreate}>
+              Создать
+            </button>
+          </div>
+        )}
 
-        {milestones.map((m) => (
-          <div key={m.id} className="project">
-
-            {editingId === m.id ? (
-              <div className="form">
-
-                <input
-                  value={editData.title || ""}
-                  onChange={(e) =>
-                    setEditData({ ...editData, title: e.target.value })
-                  }
-                />
-
-                <input
-                  value={editData.description || ""}
-                  onChange={(e) =>
-                    setEditData({ ...editData, description: e.target.value })
-                  }
-                />
-
-                <input
-                  value={editData.status || ""}
-                  onChange={(e) =>
-                    setEditData({ ...editData, status: e.target.value })
-                  }
-                />
-
-                <button className="btn" onClick={saveEdit}>
-                  Сохранить
+        {/* СПИСОК ПРОЕКТОВ */}
+        <div className="projects">
+          {projects.map((p) => (
+            <div
+              key={p.id}
+              className={`project ${selectedProject?.id === p.id ? "active" : ""}`}
+              onClick={() => selectProject(p)}
+            >
+              <div className="project-title">{p.name}</div>
+              <div className="project-actions">
+                <button onClick={(e) => { e.stopPropagation(); startEdit(p); }}>
+                  edit
                 </button>
-
-                <button
-                  className="btn"
-                  onClick={() => setEditingId(null)}
-                >
-                  Отмена
+                <button onClick={(e) => { e.stopPropagation(); handleDelete(p.id); }}>
+                  delete
                 </button>
-
               </div>
-            ) : (
-              <>
-                <div className="project-title">{m.title}</div>
+            </div>
+          ))}
+        </div>
 
-                <div className="project-details">
-                  <p><b>Status:</b> {m.status}</p>
-                  <p><b>Description:</b> {m.description}</p>
-                </div>
+      </aside>
 
-                <div className="project-actions">
-                  <button onClick={() => startEdit(m.id)}>edit</button>
-                  <button onClick={() => handleDelete(m.id)}>delete</button>
-                </div>
-              </>
+      {/* MAIN CONTENT */}
+      <main className="content">
+
+        {!selectedProject ? (
+          <h2>Выберите проект</h2>
+        ) : (
+          <>
+            <h2>{selectedProject.name} — Milestones</h2>
+
+            <button
+              className="btn"
+              onClick={() => setShowMilestoneForm(!showMilestoneForm)}
+            >
+              Добавить этап
+            </button>
+
+            {showMilestoneForm && (
+              <div className="form">
+                <input
+                  placeholder="Название"
+                  value={milestoneForm.title}
+                  onChange={(e) =>
+                    setMilestoneForm({ ...milestoneForm, title: e.target.value })
+                  }
+                />
+
+                <input
+                  placeholder="Описание"
+                  value={milestoneForm.description}
+                  onChange={(e) =>
+                    setMilestoneForm({ ...milestoneForm, description: e.target.value })
+                  }
+                />
+
+                <input
+                  placeholder="Статус"
+                  value={milestoneForm.status}
+                  onChange={(e) =>
+                    setMilestoneForm({ ...milestoneForm, status: e.target.value })
+                  }
+                />
+
+                <button className="btn" onClick={createMilestone}>
+                  Создать
+                </button>
+              </div>
             )}
 
-          </div>
-        ))}
+            <div className="projects">
+              {milestones.map((m) => (
+                <div key={m.id} className="project">
 
-      </div>
+                  {editingMilestoneId === m.id ? (
+                    <div className="form">
+                      <input
+                        value={milestoneForm.title}
+                        onChange={(e) =>
+                          setMilestoneForm({ ...milestoneForm, title: e.target.value })
+                        }
+                      />
+
+                      <input
+                        value={milestoneForm.description}
+                        onChange={(e) =>
+                          setMilestoneForm({ ...milestoneForm, description: e.target.value })
+                        }
+                      />
+
+                      <input
+                        value={milestoneForm.status}
+                        onChange={(e) =>
+                          setMilestoneForm({ ...milestoneForm, status: e.target.value })
+                        }
+                      />
+
+                      <button onClick={saveMilestone}>save</button>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="project-title">{m.title}</div>
+                      <p>{m.description}</p>
+                      <p>{m.status}</p>
+
+                      <div className="project-actions">
+                        <button onClick={() => startEditMilestone(m)}>
+                          edit
+                        </button>
+                        <button onClick={() => deleteMilestone(m.id)}>
+                          delete
+                        </button>
+                      </div>
+                    </>
+                  )}
+
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+
+      </main>
 
     </div>
   );
 }
 
-export default Milestones;
+export default Home;
