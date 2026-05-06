@@ -102,3 +102,20 @@ return [
     'supports_credentials' => false,
 
 ];
+
+
+
+
+
+export function getCurrentUser() {
+  const raw = localStorage.getItem('current_user')
+  return raw ? JSON.parse(raw) : null
+}
+
+export function setCurrentUser(user) {
+  localStorage.setItem('current_user', JSON.stringify(user))
+}
+
+export function clearCurrentUser() {
+  localStorage.removeItem('current_user')
+}
