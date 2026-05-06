@@ -1,121 +1,72 @@
-api.js 
-export function getToken() {
-  return localStorage.getItem('token')
-}
+import { useEffect, useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
+import { api, clearCurrentUser, clearToken, getCurrentUser, setCurrentUser } from '../api'
+import { useSettings } from '../settings'
 
-export function setToken(token) {
-  if (token) localStorage.setItem('token', token)
-}
+export default function Sidebar() {
+  const navigate = useNavigate()
+  const [accounts, setAccounts] = useState([])
+  const [user, setUser] = useState(getCurrentUser())
+  const { t } = useSettings()
 
-export function clearToken() {
-  localStorage.removeItem('token')
-}
+  useEffect(() => {
+    api('/related-accounts').then(setAccounts).catch(() => setAccounts([]))
+    api('/me')
+      .then((data) => {
+        setUser(data)
+        setCurrentUser(data)
+      })
+      .catch(() => setUser(getCurrentUser()))
+  }, [])
 
-export async function api(path, options = {}) {
-  const token = getToken()
-  const isFormData = options.body instanceof FormData
-
-  const cleanPath = path.startsWith('/') ? path : `/${path}`
-
-  const response = await fetch(`/api${cleanPath}`, {
-    method: options.method || 'GET',
-    headers: {
-      ...(!isFormData ? { 'Content-Type': 'application/json' } : {}),
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...(options.headers || {}),
-    },
-    body: options.body || undefined,
-  })
-
-  let data
-  try {
-    data = await response.json()
-  } catch {
-    data = {}
+  async function handleLogout() {
+    try {
+      await api('/logout', { method: 'POST' })
+    } catch {
+      // ignore API logout error and clear local token anyway
+    }
+    clearToken()
+    clearCurrentUser()
+    navigate('/login')
   }
 
-  if (!response.ok) {
-    throw new Error(
-      data.message ||
-      Object.values(data.errors || {})?.flat()?.[0] ||
-      `HTTP ${response.status}`
-    )
-  }
-
-  return data
-}
-
-
-vite.config.js
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
-
-export default defineConfig({
-  plugins: [react()],
-  server: {
-    proxy: {
-      '/api': {
-        target: 'http://127.0.0.1:8000',
-        changeOrigin: true,
-        secure: false,
-      },
-    },
-  },
-})
-
-
-cors.php
-<?php
-
-return [
-
-    /*
-    |--------------------------------------------------------------------------
-    | Cross-Origin Resource Sharing (CORS) Configuration
-    |--------------------------------------------------------------------------
-    |
-    | Here you may configure your settings for cross-origin resource sharing
-    | or "CORS". This determines what cross-origin operations may execute
-    | in web browsers. You are free to adjust these settings as needed.
-    |
-    | To learn more: https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS
-    |
-    */
-
-    'paths' => ['api/*'],
-
-    'allowed_methods' => ['*'],
-
-    'allowed_origins' => [
-        'http://127.0.0.1:5173',
-        'http://localhost:5173',
-    ],
-
-    'allowed_origins_patterns' => [],
-
-    'allowed_headers' => ['*'],
-
-    'exposed_headers' => [],
-
-    'max_age' => 0,
-
-    'supports_credentials' => false,
-
-];
-
-
-
-
-
-export function getCurrentUser() {
-  const raw = localStorage.getItem('current_user')
-  return raw ? JSON.parse(raw) : null
-}
-
-export function setCurrentUser(user) {
-  localStorage.setItem('current_user', JSON.stringify(user))
-}
-
-export function clearCurrentUser() {
-  localStorage.removeItem('current_user')
+  return (
+    <aside className="sidebar">
+      <div className="logo"><span>Stud</span>Event</div>
+      {user && (
+        <div className="related-account sidebar-profile">
+          <div className="avatar-dot" />
+          <div>
+            <strong>{user.name}</strong>
+            <small>{user.email}</small>
+          </div>
+        </div>
+      )}
+      {accounts.length > 0 && (
+        <div>
+          <p className="sidebar-title">{t('institution')}</p>
+          <div className="related-accounts">
+            {accounts.slice(0, 3).map((account) => (
+              <div className="related-account" key={account.id}>
+                <div className="avatar-dot" />
+                <div>
+                  <strong>{account.name}</strong>
+                  <small>{account.role || t('participant')}</small>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      <nav className="sidebar-nav">
+        <Link to="/">{t('home')}</Link>
+        <Link to="/streams">{t('allStreams')}</Link>
+        <Link to="/my-streams">{t('myStreams')}</Link>
+        <Link to="/streams/create">{t('createStream')}</Link>
+        <Link to="/profile">{t('profile')}</Link>
+        <Link to="/settings">{t('settings')}</Link>
+      </nav>
+      <button className="logout-btn" onClick={handleLogout}>{t('logout')}</button>
+    </aside>
+  )
 }
