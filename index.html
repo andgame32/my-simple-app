@@ -1,11 +1,34 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Моя CI/CD цепочка работает!</title>
-</head>
-<body>
-    <h1>Привет от Jenkins и Docker!</h1>
-    <p>Версия: BUILD_VERSION</p>
-</body>
-</html>
+export async function api(path, options = {}) {
+  const token = getToken()
+  const isFormData = options.body instanceof FormData
 
+  const base = API_URL.replace(/\/$/, '')
+  const cleanPath = path.startsWith('/') ? path : `/${path}`
+
+  const response = await fetch(`${base}${cleanPath}`, {
+    method: options.method || 'GET',
+    headers: {
+      ...(!isFormData ? { 'Content-Type': 'application/json' } : {}),
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(options.headers || {}),
+    },
+    ...options,
+  })
+
+  let data
+  try {
+    data = await response.json()
+  } catch {
+    data = {}
+  }
+
+  if (!response.ok) {
+    const error =
+      data.message ||
+      Object.values(data.errors || {})?.flat()?.[0] ||
+      `HTTP ${response.status}`
+    throw new Error(error)
+  }
+
+  return data
+}
