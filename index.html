@@ -1,33 +1,20 @@
 export async function api(path, options = {}) {
   const token = getToken()
-  const isFormData = options.body instanceof FormData
 
-  const base = API_URL.replace(/\/$/, '')
-  const cleanPath = path.startsWith('/') ? path : `/${path}`
-
-  const response = await fetch(`${base}${cleanPath}`, {
+  const response = await fetch(`/api${path}`, {
     method: options.method || 'GET',
     headers: {
-      ...(!isFormData ? { 'Content-Type': 'application/json' } : {}),
+      'Content-Type': 'application/json',
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...(options.headers || {}),
     },
     ...options,
   })
 
-  let data
-  try {
-    data = await response.json()
-  } catch {
-    data = {}
-  }
+  const data = await response.json().catch(() => ({}))
 
   if (!response.ok) {
-    const error =
-      data.message ||
-      Object.values(data.errors || {})?.flat()?.[0] ||
-      `HTTP ${response.status}`
-    throw new Error(error)
+    throw new Error(data.message || `HTTP ${response.status}`)
   }
 
   return data
