@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Router, useNavigate } from "react-router-dom"
 import api from "../api"
@@ -91,3 +92,17 @@ abstract class Controller
 {
     //
     }
+
+
+
+    'scanOptions' => [
+    'analyser' => null,
+    'analysis' => null,
+    'processors' => [
+        new \OpenApi\Processors\BuildPaths(),
+        new \OpenApi\Processors\CleanUnmerged(),
+        new \OpenApi\Processors\AugmentSchemas(),
+    ],
+    'pattern' => '*.php',
+    'exclude' => [],
+],
