@@ -68,3 +68,26 @@ VALUES (
     NOW(),
     NOW()
 );
+
+
+
+
+
+<?php
+
+namespace App\Http\Controllers;
+
+use OpenApi\Annotations as OA;
+
+/**
+ * @OA\Info(
+ *     title="StudEvent API",
+ *     version="1.0.0",
+ *     description="Документация API проекта StudEvent"
+ * )
+ */
+
+abstract class Controller
+{
+    //
+    }
